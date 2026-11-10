@@ -1,22 +1,23 @@
 {
-    "interactiveLogin": false,
-    "httpServer": "NettyWrapper",
-    "loginPagePath" : "/config/login.html",
-    "tokenCallbacks": [
+  "interactiveLogin": false,
+  "httpServer": "NettyWrapper",
+  "loginPagePath": "/config/login.html",
+  "tokenCallbacks": [
+    {
+      "issuerId": "default",
+      "tokenExpiry": 120,
+      "requestMappings": [
         {
-            "issuerId": "mock-oauth2",
-            "tokenExpiry": 120,
-            "requestMappings": [
-                {
-                    "requestParam": "grant_type",
-                    "match": "*",
-                    "claims": {
-                        "client_id": "some-client",
-                        "sub": "some-user-id",
-                        "something": "else"
-                    }
-                }
-            ]
+          "requestParam": "grant_type",
+          "match": "*",
+          "claims": {
+            "client_id": "some-client",
+            "sub": "some-user-id",
+            "something": "else",
+            "role": "ROLE_ADMIN"
+          }
         }
-    ]
+      ]
+    }
+  ]
 }
