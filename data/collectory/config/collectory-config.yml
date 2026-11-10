@@ -18,3 +18,5 @@ ala:
             path: ./data/collectory/config
 
 gbifLicenceMappingUrl: file:./data/collectory/config/default-gbif-licence-mapping.json
+
+connectionProfilesPath: ./data/collectory/config/connection-profiles.json
