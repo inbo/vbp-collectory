@@ -398,6 +398,11 @@ dataSource:
 environments:
   development:
     grails:
+      # bootRun (development env) reads local overrides from ./data instead of
+      # /data. Packaged wars run as production and keep the locations above.
+      config:
+        locations:
+          - file:./data/collectory/config/collectory-config.yml
       assets:
         storagePath: "/data/collectory"
       plugin:

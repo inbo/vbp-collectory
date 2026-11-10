@@ -6,3 +6,9 @@ build/*
 .grailspid
 /.gradle/
 /build/
+
+# Local bootRun data dir: keep the config, ignore runtime files
+/data/*
+!/data/collectory/
+/data/collectory/*
+!/data/collectory/config/

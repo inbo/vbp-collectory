@@ -1,0 +1,20 @@
+# Local overrides for `./gradlew bootRun` (development environment only).
+# Loaded via environments.development.grails.config.locations in
+# grails-app/conf/application.yml. Paths are relative to the project root,
+# which is bootRun's working directory.
+
+uploadFilePath: ./data/collectory/upload
+
+repository:
+    location:
+        images: ./data/collectory/data
+
+sitemap:
+    dir: ./data/collectory
+
+ala:
+    admin:
+        systemMessage:
+            path: ./data/collectory/config
+
+gbifLicenceMappingUrl: file:./data/collectory/config/default-gbif-licence-mapping.json
