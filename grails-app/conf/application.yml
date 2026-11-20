@@ -130,8 +130,8 @@ gbif:
 gbifRegistrationEnabled: false
 gbifEndorsingNodeKey: XXXXXXXXXXXXXXXX
 gbifInstallationKey: XXXXXXXXXXXXXXXX
-gbifApiUser: XXXXXXXXXXXXXXXX
-gbifApiPassword: XXXXXXXXXXXXXXXX
+gbifApiUser: "${GBIF_API_USER:}"
+gbifApiPassword: "${GBIF_API_PASSWORD:}"
 gbifExportUrlBase:
 gbifRegistrationDryRun: true
 gbifLicenceMappingUrl: file:///data/collectory/config/default-gbif-licence-mapping.json

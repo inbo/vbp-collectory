@@ -267,6 +267,10 @@
                           <g:link class="mainLink" controller="gbif" action="healthCheck"><g:message code="manage.list.addtools.gbif.healthcheck" /></g:link>
                           <p class="mainText d-none"r><g:message code="manage.list.addtools.gbif.healthcheck.desc" default="GBIF Healthcheck" /></p>
                       </div>
+                      <div class="homeCell btn btn-default">
+                          <g:link class="mainLink" controller="gbif" action="syncScan">Automatic GBIF update</g:link>
+                          <p class="mainText hide">Update resources that GBIF has republished: by data provider, orphans, or selected resources</p>
+                      </div>
                   </div>
                 </cl:ifGranted>
                 <cl:ifNotGranted role="${grailsApplication.config.ROLE_ADMIN}">
