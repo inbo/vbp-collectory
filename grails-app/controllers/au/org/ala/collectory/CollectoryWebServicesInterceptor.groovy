@@ -29,6 +29,9 @@ class CollectoryWebServicesInterceptor {
         match('controller':'data', action: 'updateContactFor')
         match('controller':'data', action: 'contacts')
         match(controller:'gbif', action:"scan")
+        match(controller:'gbif', action:"scanResources")
+        match(controller:'gbif', action:"syncScan")
+        match(controller:'gbif', action:"launchScan")
         match(controller:'ipt', action:"scan")
 
     }

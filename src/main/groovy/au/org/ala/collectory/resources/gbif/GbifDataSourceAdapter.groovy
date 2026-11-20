@@ -403,8 +403,10 @@ class GbifDataSourceAdapter extends DataSourceAdapter {
         connection.url = "file:///${upload.absolutePath}"
         connection.protocol = "DwCA"
         connection.termsForUniqueKey = ["occurrenceID"]
-        if(configuration.region){
+        if (configuration.useGadm1Code && configuration.region) {
             connection.region = configuration.region
+        } else {
+            connection.remove('region')
         }
         update.connectionParameters = (new JsonOutput()).toJson(connection)
         return update

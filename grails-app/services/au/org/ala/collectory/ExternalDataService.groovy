@@ -26,6 +26,7 @@ class ExternalDataService {
     def grailsApplication
     def crudService
     def externalIdentifierService
+    def gbifService
 
     static final POLL_INTERVAL = 15000
     static final DateFormat ALA_TIMESTAMP_FORMAT= new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
@@ -267,11 +268,22 @@ class ExternalDataService {
     }
 
     private String submitDataDownload(DataSourceLoad load, DataSourceAdapter adaptor, ExternalResourceBean resource) {
-        if (load.configuration.getUseGadm1Code()) {
-            load.configuration.region ? adaptor.generateDataForRegion(resource.guid, load.configuration.region) : adaptor.generateData(resource.guid, resource.country)
-        } else {
-            adaptor.generateData(resource.guid, resource.country) // till we support fetching data by WKT polygon (Gbif API currently returns records for the whole country(-ies) where WKT polygon is located)
+        adaptor.generateData(resource.guid, downloadPolygon(load.configuration, resource))
+    }
+
+    /**
+     * The WKT polygon sent to GBIF as the download filter. It matches the filter used by the search:
+     * the pasted WKT polygon, else the polygon of the selected region, else the polygon of the country.
+     */
+    private String downloadPolygon(DataSourceConfiguration configuration, ExternalResourceBean resource) {
+        if (configuration.useGeometry && configuration.geometry) {
+            return configuration.geometry
         }
+        def polygonMap = gbifService.getRegionPolygonMap()
+        if (configuration.useGadm1Code && configuration.region) {
+            return polygonMap.get(configuration.region)
+        }
+        return polygonMap.get(resource.country)
     }
 
     /**

@@ -14,6 +14,7 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.util.EntityUtils
 import org.apache.tools.zip.ZipFile
 import org.grails.web.json.JSONObject
 import org.slf4j.LoggerFactory
@@ -494,6 +495,7 @@ class GbifService {
         if (response.getStatusLine().statusCode in [200,201,202]){
             return IOUtils.readLines(entity.getContent()).get(0)
         } else {
+            LOGGER.error("GBIF download request refused: HTTP ${response.getStatusLine().statusCode} ${response.getStatusLine().getReasonPhrase()} body: ${entity ? EntityUtils.toString(entity) : ''}")
             null
         }
     }

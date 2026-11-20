@@ -131,6 +131,11 @@ class ManageController {
         params.username = grailsApplication.config.gbifApiUser
         params.password = grailsApplication.config.gbifApiPassword
 
+        // The region list is hidden (not disabled) for Belgium-wide requests, so the browser still sends its first value.
+        if (params.useGadm1Code != 'true') {
+            params.region = ''
+        }
+
         DataSourceConfiguration configuration = new DataSourceConfiguration(params)
         def dataResources = DataResource.all.findAll({ dr -> dr.resourceType == 'records' }).sort({ it.name })
         def resources = externalDataService.searchForDatasets(configuration)

@@ -29,6 +29,7 @@ class GbifController {
     def gbifRegistryService
     def asyncGbifRegistryService
     def gbifService
+    def gbifSyncService
     def authService
     def externalDataService
     def dataLinkService
@@ -203,57 +204,94 @@ class GbifController {
             return
         }
 
-        def resources = dataProvider.resources
-        def output = []
-        def updates = []
-        resources.each { DataResource resource ->
-            Date lastUpdated = gbifService.getGbifDatasetLastUpdated(resource.guid)
-            //get last updated data
-            def resourceDescription =  [uid:resource.uid,
-                         name: resource.name,
-                         lastUpdated: resource.lastUpdated,
-                         guid: resource.guid,
-                         country: resource.repatriationCountry,
-                         pubDate: lastUpdated,
-                         inSync:  !(lastUpdated > resource.lastUpdated)
-            ]
-            output << resourceDescription
-            if (lastUpdated > resource.lastUpdated) {
-                updates << resourceDescription
-            }
+        def sync = gbifSyncService.startSync(dataProvider.resources.toList(), "data provider ${dataProvider.name} (${dataProvider.uid})")
+        redirect(action: "syncStatus", params: [loadGuid: sync.loadGuid])
+    }
+
+    /**
+     * Synchronises resources that are not attached to a data provider.
+     * Pass uids=dr12,dr13 for specific resources, or orphans=true for every resource with a GBIF key and no provider.
+     */
+    def scanResources() {
+        List resources
+        if (params.uids) {
+            List uids = params.uids.toString().split(',').collect { it.trim() }.findAll { it }
+            resources = DataResource.findAllByUidInList(uids)
+        } else if (params.orphans?.toString() == 'true') {
+            resources = DataResource.findAllByDataProviderIsNull().findAll { it.guid }
+        } else if (params.all?.toString() == 'true') {
+            resources = DataResource.all.findAll { it.guid }
+        } else {
+            response.sendError(400, "Pass uids=<comma separated resource uids>, orphans=true or all=true")
+            return
         }
-
-        DataSourceConfiguration configuration = new DataSourceConfiguration()
-        configuration.adaptorClass = GbifRepatDataSourceAdapter.class
-        configuration.endpoint = new URL(grailsApplication.config.gbifApiUrl)
-        configuration.username = grailsApplication.config.gbifApiUser
-        configuration.password = grailsApplication.config.gbifApiPassword
-
-        def externalResourceBeans = []
-
-        output.each { res ->
-            if (!res.inSync && res.guid){
-                res.status = "RELOADING"
-                externalResourceBeans << new ExternalResourceBean(
-                        uid: res.uid, guid: res.guid, name: res.name, country: res.country, updateMetadata:true, updateConnection:true)
-            } else {
-                res.status = "IN_SYNC"
-            }
+        if (!resources) {
+            response.sendError(404, "No matching resource found")
+            return
         }
-        configuration.resources = externalResourceBeans
+        def sync = gbifSyncService.startSync(resources, "${resources.size()} resource(s) without a data provider")
+        redirect(action: "syncStatus", params: [loadGuid: sync.loadGuid])
+    }
 
-        def loadGuid = UUID.randomUUID().toString()
+    /**
+     * Page to choose which automatic update to launch: a data provider, the orphans, or selected resources.
+     */
+    def syncScan() {
+        def providers = DataProvider.all.sort { it.name }
+        def resources = DataResource.all.findAll { it.guid }.sort { it.name }
+        def orphanCount = DataResource.findAllByDataProviderIsNull().count { it.guid }
+        def allCount = resources.size()
+        render(view: 'syncScan', model: [providers: providers, resources: resources, orphanCount: orphanCount, allCount: allCount])
+    }
 
-        log.info("Reloading process ID " + loadGuid)
-        externalDataService.updateFromExternalSources(configuration, loadGuid)
+    /**
+     * Forwards the choice made on the syncScan page to the matching scan address. The scan itself checks the login.
+     */
+    def launchScan() {
+        switch (params.method) {
+            case 'provider':
+                if (!params.providerUid) {
+                    flash.message = "Choose a data provider first."
+                    redirect(action: 'syncScan')
+                    return
+                }
+                redirect(uri: "/ws/gbif/scan/${params.providerUid}")
+                break
+            case 'orphans':
+                redirect(uri: "/ws/gbif/scanResources?orphans=true")
+                break
+            case 'all':
+                redirect(uri: "/ws/gbif/scanResources?all=true")
+                break
+            case 'resources':
+                List uids = params.list('resourceUids').findAll { it }
+                if (!uids) {
+                    flash.message = "Select at least one data resource first."
+                    redirect(action: 'syncScan')
+                    return
+                }
+                redirect(uri: "/ws/gbif/scanResources?uids=" + uids.join(','))
+                break
+            default:
+                flash.message = "Choose one of the three update methods."
+                redirect(action: 'syncScan')
+        }
+    }
 
-        def fullOutput =
-                [loadGuid: loadGuid,
-                 trackingUrl: createLink(controller:"manage", action:"externalLoadStatus", params: [loadGuid: loadGuid]),
-                 updates: updates,
-                 resources: output
-                ]
-        render(fullOutput as JSON)
+    /**
+     * Shows the progress and results of a synchronisation run started by the scan
+     */
+    def syncStatus() {
+        def run = gbifSyncService.status(params.loadGuid)
+        if (!run) {
+            response.sendError(404)
+            return
+        }
+        if (params.format == 'json') {
+            render(run as JSON)
+            return
+        }
+        render(view: 'syncStatus', model: [run: run])
     }
 
     @JsonIgnoreProperties('metaClass')
