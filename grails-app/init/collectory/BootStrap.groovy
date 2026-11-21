@@ -27,6 +27,8 @@ class BootStrap {
                 if (connection.responseCode >= 200 && connection.responseCode < 300) {
                     basenames << facetsI18nUrl
                 }
+            } catch (IOException e) {
+                log.warn("Skipping biocache facet i18n messages, ${facetsI18nUrl} is unavailable: ${e.message}")
             } finally {
                 connection?.disconnect()
             }
