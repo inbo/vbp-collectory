@@ -35,7 +35,7 @@ class CitationsTagLib {
                     def data = js.parseText(responseBody)
 
                     if (data.count) {
-                        out << """<a class="btn btn-default" href="${grailsApplication.config.gbif.citations.search}${attrs.gbifRegistryKey}">&nbsp;<span class="glyphicon glyphicon-bullhorn"></span>&nbsp; ${data.count} ${g.message(code:"citations.available", default:"citations for these data")}</a>"""
+                        out << """<a class="btn btn-outline-dark" href="${grailsApplication.config.gbif.citations.search}${attrs.gbifRegistryKey}">&nbsp;<span class="fa fa-bullhorn"></span>&nbsp; ${data.count} ${g.message(code:"citations.available", default:"citations for these data")}</a>"""
                     }
 
                 } else {

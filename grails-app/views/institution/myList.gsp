@@ -19,7 +19,7 @@
         </div>
         <div class="body">
             <g:if test="${flash.message}">
-            <div class="message">${flash.message}</div>
+            <div class="alert alert-info">${flash.message}</div>
             </g:if>
             <h1><g:message code="institutions.myList.label" default="My institutions" /></h1>
             <g:render template="/shared/institutionList" model="[institutionInstanceList: institutions]"/>

@@ -234,16 +234,15 @@ class ExternalDataService {
             File uploadFileName = null
             if (adaptor.isDownloadable()) {
                 resource.phase = TaskPhase.DOWNLOADING
-                File uploadDir = new File(grailsApplication.config.uploadFilePath as String)
-                File uploadTmpDir = new File(new File(uploadDir, "tmp"), resource.downloadId);
+                File uploadTmpDir = new File(UploadPathHelper.getTempDirectory(grailsApplication.config.uploadFilePath, dr.uid, resource.downloadId))
                 FileUtils.forceMkdir(uploadTmpDir)
-                File tmpFileName = new File(uploadTmpDir, resource.downloadId);
+                File tmpFileName = new File(uploadTmpDir, resource.downloadId)
                 adaptor.downloadData(resource.downloadId, tmpFileName)
                 if (resource.phase.terminal) return // Cancelled externally
 
                 resource.phase = TaskPhase.PROCESSING
                 String fileId = Long.toString(System.currentTimeMillis())
-                File uploadWorkDir = new File(uploadDir, fileId)
+                File uploadWorkDir = new File(UploadPathHelper.getUploadDirectory(grailsApplication.config.uploadFilePath, dr.uid, fileId))
                 FileUtils.forceMkdir(uploadWorkDir)
                 uploadFileName = adaptor.processData(tmpFileName, uploadWorkDir, resource)
                 if (resource.phase.terminal) return // Cancelled externally

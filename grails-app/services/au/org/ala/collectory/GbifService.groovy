@@ -42,6 +42,7 @@ class GbifService {
     // GET request to retrieve download
     static final String DOWNLOAD_STATUS = "occurrence/download/" //GET request to this
     static final String DATASET_RECORD_COUNT = "occurrence/count?datasetKey={0}"
+    static final String LIST_COUNTRIES = "enumeration/country"
 
     def CONCURRENT_LOADS = 3
 
@@ -141,8 +142,8 @@ class GbifService {
     def applyDwCA(File file, String dataResourceUid){
         try {
             log.info("Copying DwCA to staging and associated the file to the data resource")
-            def fileId = System.currentTimeMillis()
-            String targetFileName = grailsApplication.config.uploadFilePath + fileId  + File.separator + file.getName()
+            def fileId = System.currentTimeMillis().toString()
+            String targetFileName = UploadPathHelper.getUploadFilePath(grailsApplication.config.uploadFilePath, dataResourceUid, fileId, file.getName())
             File targetFile = new File(targetFileName)
             FileUtils.forceMkdir(targetFile.getParentFile())
             file.renameTo(targetFile)
@@ -640,20 +641,14 @@ class GbifService {
         return loadMap[datasetKey]
     }
 
+    /**
+     * Returns a map of country ISO2 codes to country names from GBIF.
+     * @return
+     */
     def getCountryMap(){
-        def isoCodeList = getJSONWS(grailsApplication.config.gbifApiUrl + "node/country")
-        //intersect with iso names
-        def isoMap = [:]
-        this.class.classLoader.getResourceAsStream("isoCodes.csv").readLines().each{
-            def codeAndName = it.split("\t")
-            isoMap.put(codeAndName[0], codeAndName[1])
-        }
-        def pubMap = [:]
-        isoCodeList.each {
-            def name = isoMap.get(it)
-            pubMap.put(it, name)
-        }
-        return pubMap.sort { it.value }
+        def isoCodeList = getJSONWS(grailsApplication.config.gbifApiUrl + LIST_COUNTRIES)
+        def isoMap = isoCodeList.collectEntries { [(it.iso2): it.title] }
+        return isoMap.sort { it.value }
     }
 
     def getRegionMap() {
@@ -693,8 +688,7 @@ class GbifService {
         return polygonMap
     }
 
-    def Date getGbifDatasetLastUpdated(String guid){
-
+    Date getGbifDatasetLastUpdated(String guid){
         try {
             def json = new JsonSlurper().parse(new URL(grailsApplication.config.gbifApiUrl + "dataset/" + guid))
             //TODO check with GBIF this is the appropriate timestamp to use

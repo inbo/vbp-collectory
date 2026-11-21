@@ -144,20 +144,8 @@ trait ProviderGroup implements Serializable {
      * @return primary ContactFor (contains the contact and the role for this collection)
      */
     ContactFor getPrimaryPublicContact() {
-        List<ContactFor> list = getContacts()
-        switch (list.size()) {
-            case 0: return null
-            case 1: return list[0]
-            default:
-                ContactFor result = null
-                for (cf in list) {
-                    if (cf.primaryContact && cf.contact.publish)  // definitive (as long as there is only one primary)
-                        return cf
-                }
-                // filter for publish then take the first
-                if (!result) result = list.findAll({it.contact.publish})[0]  // just take one
-                return result
-        }
+        List<ContactFor> publicList = getContacts().findAll { it.contact?.publish }
+        return publicList.find { it.primaryContact } ?: (publicList ? publicList[0] : null)
     }
 
     /**
@@ -224,7 +212,7 @@ trait ProviderGroup implements Serializable {
      * Deletes the linkage between the contact and this group
      */
     void deleteFromContacts(Contact contact) {
-        ContactFor.findByEntityUidAndContact(uid, contact)?.delete()
+        ContactFor.findByEntityUidAndContact(uid, contact)?.delete(flush: true)
     }
 
     /**
@@ -233,7 +221,7 @@ trait ProviderGroup implements Serializable {
      * @param identifier
      */
     void deleteExternalIdentifier(ExternalIdentifier identifier) {
-        ExternalIdentifier.findByEntityUidAndIdentifierAndSource(uid, identifier.identifier, identifier.source)?.delete()
+        ExternalIdentifier.findByEntityUidAndIdentifierAndSource(uid, identifier.identifier, identifier.source)?.delete(flush: true)
     }
 
     /**
@@ -400,7 +388,7 @@ trait ProviderGroup implements Serializable {
         List<Attribution> list = []
         if (uids) {
             list = Attribution.createCriteria().list {
-                in('uid', uids)
+                inList('uid', uids)
             }
         }
 
