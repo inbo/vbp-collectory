@@ -1,5 +1,6 @@
 package au.org.ala.collectory.resources.gbif
 
+import grails.util.Holders
 import au.org.ala.collectory.DataProvider
 import au.org.ala.collectory.DataResource
 import au.org.ala.collectory.DataSourceConfiguration
@@ -401,7 +402,7 @@ class GbifDataSourceAdapter extends DataSourceAdapter {
         def update = [:]
         connection.url = "file:///${upload.absolutePath}"
         connection.protocol = "DwCA"
-        connection.termsForUniqueKey = ["http://rs.gbif.org/terms/1.0/gbifID"]
+        connection.termsForUniqueKey = [Holders.config.getProperty('gbifUniqueKeyTerm', String, '') ?: "http://rs.gbif.org/terms/1.0/gbifID"]
         if(configuration.region){
             connection.region = configuration.region
         }

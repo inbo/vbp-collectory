@@ -110,7 +110,9 @@ regionName: Australia
 uploadFilePath: /data/collectory/upload/
 uploadExternalUrlPath: http://localhost/upload
 gbifApiUrl: 'https://api.gbif.org/v1/'
-gbifUniqueKeyTerm: "http://rs.gbif.org/terms/1.0/gbifID"
+# Term used as unique key for resources repatriated/synced from GBIF (e.g. "occurrenceID").
+# Leave empty to keep the default of using gbifID.
+gbifUniqueKeyTerm: ""
 gbifWebsite: "https://www.gbif-test.org/"
 
 # country 3 digit ISO code. Non-empty value required at startup
