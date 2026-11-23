@@ -39,7 +39,7 @@
                     <h2 class="dataResourceProviderLink"><g:link action="show" id="${dp.uid}">${dp.name}</g:link></h2>
                 </g:if>
                 <g:if test="${instance.institution}">
-                    <h2 class="dataResourceInstitutionLink"><g:link action="show" id="${instance.institution.uid}">${instance.institution.name}</g:link></h2>
+                    <h2 class="dataResourceInstitutionLink" style="font-size:${grailsApplication.config.getProperty('publicPage.dataResource.institutionFontSize', String, '1.5rem')}"><g:link action="show" id="${instance.institution.uid}">${instance.institution.name}</g:link></h2>
                 </g:if>
             </div>
 
