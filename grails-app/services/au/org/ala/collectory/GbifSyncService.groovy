@@ -1,6 +1,5 @@
 package au.org.ala.collectory
 
-import groovy.json.JsonOutput
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.http.HttpHeaders
@@ -55,7 +54,7 @@ class GbifSyncService {
      */
     Map planResource(DataResource dr) {
         Map plan = [uid: dr.uid, name: dr.name, guid: dr.guid, lastUpdated: dr.lastUpdated,
-                    region: dr.region, country: dr.repatriationCountry, action: 'REFUSE', reason: '', polygon: null]
+                    region: dr.region, country: dr.repatriationCountry, scope: scopeOf(dr), action: 'REFUSE', reason: '']
         if (!dr.guid) {
             plan.reason = 'No GBIF key on this resource'
             return plan
@@ -71,28 +70,45 @@ class GbifSyncService {
             plan.reason = 'Already up to date with GBIF'
             return plan
         }
-        if (!dr.region && !dr.repatriationCountry) {
-            plan.reason = 'No region and no country recorded: the original scope is unknown, refusing to download the whole dataset'
-            return plan
-        }
-        plan.polygon = scopePolygon(dr.region, dr.repatriationCountry)
-        if (!plan.polygon) {
-            plan.reason = "No area polygon for ${dr.region ?: dr.repatriationCountry}: refusing to download without a filter"
-            return plan
-        }
         plan.action = 'UPDATE'
-        plan.reason = "GBIF published ${pubDate} after the last update ${dr.lastUpdated}"
+        plan.reason = "GBIF published ${pubDate} after the last update ${dr.lastUpdated}, area ${scopeLabel(plan.scope)}"
         plan
     }
 
-    String scopePolygon(String region, String country) {
-        def polygons = gbifService.getRegionPolygonMap()
-        region ? polygons.get(region) : polygons.get(country)
+    /**
+     * The area filter of the original download: the scope stored with the resource, else the region,
+     * else the country (resources downloaded before scopes were stored), else no area filter.
+     */
+    Map scopeOf(DataResource dr) {
+        def stored = new groovy.json.JsonSlurper().parseText(dr.connectionParameters ?: '{}')?.scope
+        if (stored instanceof Map && stored.type) {
+            return stored as Map
+        }
+        if (dr.region) return [type: 'gadm', value: dr.region]
+        if (dr.repatriationCountry) return [type: 'country', value: dr.repatriationCountry]
+        [type: 'none']
+    }
+
+    String scopeLabel(Map scope) {
+        switch (scope.type) {
+            case 'none': return 'none (no area filter)'
+            case 'polygon': return 'polygon (WKT)'
+            default: return "${scope.type} ${scope.value}"
+        }
+    }
+
+    String startScopedDownload(String guid, Map scope) {
+        switch (scope.type) {
+            case 'gadm': return gbifService.startGBIFDownloadForRegion(guid, scope.value as String)
+            case 'country': return gbifService.startGBIFDownload(guid, scope.value as String)
+            case 'polygon': return gbifService.startGBIFDownloadWithinGeometry(guid, scope.value as String)
+            default: return gbifService.startGBIFDownload(guid, null)
+        }
     }
 
     void runSync(String loadGuid, List plan) {
         plan.findAll { it.action == 'UPDATE' }.each { Map item ->
-            record(loadGuid, item.uid, 'RUNNING', "Requesting GBIF download for ${item.region ?: item.country}")
+            record(loadGuid, item.uid, 'RUNNING', "Requesting GBIF download for ${scopeLabel(item.scope)}")
             try {
                 record(loadGuid, item.uid, 'UPDATED', reloadResource(item))
             } catch (Exception e) {
@@ -116,7 +132,7 @@ class GbifSyncService {
         DataResource before = DataResource.withTransaction { DataResource.findByUid(item.uid) }
         String regionBefore = before.region
 
-        String downloadId = gbifService.startGBIFDownload(item.guid, item.polygon)
+        String downloadId = startScopedDownload(item.guid, item.scope)
         if (!downloadId) {
             throw new IllegalStateException("GBIF refused the download request (see the 'refused' line above)")
         }
@@ -129,8 +145,8 @@ class GbifSyncService {
         if (!download) {
             throw new IllegalStateException("Could not read GBIF download ${downloadId}; nothing was changed")
         }
-        if (!filterMatches(download, item.polygon)) {
-            throw new IllegalStateException("GBIF download ${downloadId} does not use the area of ${regionBefore ?: item.country}; nothing was changed")
+        if (!filterMatches(download, item.scope)) {
+            throw new IllegalStateException("GBIF download ${downloadId} does not use the area of ${scopeLabel(item.scope)}; nothing was changed")
         }
 
         File dir = new File(grailsApplication.config.uploadFilePath + File.separator + "tmp" + File.separator + downloadId)
@@ -149,15 +165,38 @@ class GbifSyncService {
         if (after.region != regionBefore) {
             throw new IllegalStateException("Area changed from ${regionBefore} to ${after.region} during the update: check this resource")
         }
-        "Updated with ${records} records, area ${regionBefore ?: item.country}, GBIF download ${downloadId}"
+        "Updated with ${records} records, area ${scopeLabel(item.scope)}, GBIF download ${downloadId}"
     }
 
     /**
-     * True when the download request sent to GBIF contains the expected polygon, so the filter did not change.
+     * True when the download request sent to GBIF uses the same area filter as the stored scope.
      */
-    boolean filterMatches(Map download, String polygon) {
-        String request = JsonOutput.toJson(download.request ?: [:]).replaceAll(/\s/, '')
-        request.contains(polygon.replaceAll(/\s/, ''))
+    boolean filterMatches(Map download, Map scope) {
+        List predicates = []
+        collectPredicates(download.request?.predicate, predicates)
+        List within = predicates.findAll { it.type == 'within' }
+        List areas = predicates.findAll { it.key in ['COUNTRY', 'GADM_GID'] }
+        switch (scope.type) {
+            case 'polygon':
+                return areas.isEmpty() && within.size() == 1 && within[0].geometry?.replaceAll(/\s/, '') == scope.value?.replaceAll(/\s/, '')
+            case 'gadm':
+                return within.isEmpty() && areas.size() == 1 && areas[0].key == 'GADM_GID' && areas[0].value == scope.value
+            case 'country':
+                return within.isEmpty() && areas.size() == 1 && areas[0].key == 'COUNTRY' && areas[0].value == scope.value
+            default:
+                return within.isEmpty() && areas.isEmpty()
+        }
+    }
+
+    private void collectPredicates(Object node, List found) {
+        if (node instanceof Map) {
+            if (node.containsKey('key') || node.containsKey('geometry')) {
+                found << node
+            }
+            node.values().each { collectPredicates(it, found) }
+        } else if (node instanceof List) {
+            node.each { collectPredicates(it, found) }
+        }
     }
 
     String waitForDownload(String downloadId) {
