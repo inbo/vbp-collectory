@@ -85,7 +85,8 @@
 <g:each in="${load.resources}" var = "resource" >
     <tr class="prop">
         <td class="name col-md-7">${resource.name}</td>
-        <td class="name col-md-1 ${resource.phase}"><span title="<g:message code="manage.phase.${resource.phase}.detail"/>"><g:message code="manage.phase.${resource.phase}"/></span></td>
+        <td class="name col-md-1 ${resource.phase}"><span title="<g:message code="manage.phase.${resource.phase}.detail"/>"><g:message code="manage.phase.${resource.phase}"/></span>
+            <g:each in="${resource.notes}" var="note"><br/><small><g:message code="${note.code}" args="${note.args}" default="${note.code}"/></small></g:each></td>
         <td class="name col-md-4"><g:if test="${resource.uid && resource.phase.terminal}"><a href="${createLink(controller:'dataResource',action:'show', id:resource.uid)}"> View Data Resource Page </a></g:if></td>
     </tr>
 </g:each>

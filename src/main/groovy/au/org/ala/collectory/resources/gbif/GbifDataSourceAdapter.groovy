@@ -354,6 +354,18 @@ class GbifDataSourceAdapter extends DataSourceAdapter {
     String generateDataForRegion(String guid, String region) throws ExternalResourceException {
         GbifService.startGBIFDownloadForRegion(guid, region, configuration.endpoint, configuration.username, configuration.password)
     }
+
+    /**
+     * Starts the GBIF download by calling the API, limited to a WKT geometry.
+     * @param guid The GBIF identifier for the resource
+     * @param wkt The polygon in WKT format
+     * @return
+     * @throws ExternalResourceException
+     */
+    @Override
+    String generateDataForGeometry(String guid, String wkt) throws ExternalResourceException {
+        GbifService.startGBIFDownloadWithinGeometry(guid, wkt, configuration.endpoint, configuration.username, configuration.password)
+    }
 /**
      * Check to see how the download is coming along
      *
@@ -408,6 +420,9 @@ class GbifDataSourceAdapter extends DataSourceAdapter {
         } else {
             connection.remove('region')
         }
+        connection.scope = GbifService.downloadScope(configuration.country,
+                configuration.useGadm1Code ? configuration.region : null,
+                configuration.useGeometry ? configuration.geometry : null)
         update.connectionParameters = (new JsonOutput()).toJson(connection)
         return update
     }

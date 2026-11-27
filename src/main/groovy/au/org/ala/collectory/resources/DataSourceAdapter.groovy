@@ -149,6 +149,15 @@ abstract class DataSourceAdapter {
     abstract String generateDataForRegion(String guid, String region) throws ExternalResourceException
 
     /**
+     * Generate data for download limited to a WKT geometry
+     * @param guid The identifier for the resource
+     * @param wkt The polygon in WKT format
+     * @return An identifier that can be used to monitor when the generation phase has completed (null for an error)
+     * @throws ExternalResourceException
+     */
+    abstract String generateDataForGeometry(String guid, String wkt) throws ExternalResourceException
+
+    /**
      * See if a task has completed.
      * <p>
      * Returns {@link TaskPhase#COMPLETED} for a completed generation task, {@link TaskPhase#GENERATING} for

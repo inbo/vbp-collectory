@@ -20,6 +20,8 @@
         .sync-banner-running { background: #d9edf7; color: #31708f; }
         .sync-banner-done { background: #dff0d8; color: #3c763d; }
         td.sync-reason { font-size: 0.9em; color: #555; max-width: 420px; }
+        .sync-polygon { background: #f0ad4e; }
+        .sync-warning { padding: 10px 15px; border-radius: 4px; margin: 15px 0; background: #fcf8e3; color: #8a6d3b; border: 1px solid #faebcc; }
     </style>
 </head>
 <body>
@@ -54,6 +56,9 @@
     <span><strong>${failed}</strong> failed</span>
 </div>
 
+<g:if test="${plan.count { it.scope?.type == 'polygon' } > 0}">
+    <p class="sync-warning">${plan.count { it.scope?.type == 'polygon' }} dataset(s) in this run were downloaded with a polygon filter (WKT), not a GBIF country or region code.</p>
+</g:if>
 <table class="table table-striped" style="margin-top: 15px">
     <thead>
     <tr>
@@ -68,7 +73,7 @@
         <%
             def result = results[item.uid]
             def status = result?.status ?: item.action
-            def area = item.region ?: (item.country ? "${item.country} (whole country)" : 'none recorded')
+            def area = [gadm: "Region ${item.scope?.value}", country: "${item.scope?.value} (whole country)", polygon: 'Polygon (WKT)', none: 'No area filter'][item.scope?.type] ?: 'No area filter'
             def details = result?.message ?: item.reason
         %>
         <tr>
@@ -76,7 +81,7 @@
                 <g:link controller="dataResource" action="show" id="${item.uid}">${item.name ?: item.uid}</g:link>
                 <br/><small>${item.uid}</small>
             </td>
-            <td>${area}</td>
+            <td>${area}<g:if test="${item.scope?.type == 'polygon'}"> <span class="sync-badge sync-polygon">POLYGON</span></g:if></td>
             <td><span class="sync-badge sync-${status}">${status}</span></td>
             <td class="sync-reason">${details}</td>
         </tr>

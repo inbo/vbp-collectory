@@ -267,22 +267,15 @@ class ExternalDataService {
     }
 
     private String submitDataDownload(DataSourceLoad load, DataSourceAdapter adaptor, ExternalResourceBean resource) {
-        adaptor.generateData(resource.guid, downloadPolygon(load.configuration, resource))
-    }
-
-    /**
-     * The WKT polygon sent to GBIF as the download filter. It matches the filter used by the search:
-     * the pasted WKT polygon, else the polygon of the selected region, else the polygon of the country.
-     */
-    private String downloadPolygon(DataSourceConfiguration configuration, ExternalResourceBean resource) {
+        DataSourceConfiguration configuration = load.configuration
+        // Same filter as the search: pasted geometry, else the region (GADM code), else the country code, else none
         if (configuration.useGeometry && configuration.geometry) {
-            return configuration.geometry
+            return adaptor.generateDataForGeometry(resource.guid, configuration.geometry)
         }
-        def polygonMap = gbifService.getRegionPolygonMap()
         if (configuration.useGadm1Code && configuration.region) {
-            return polygonMap.get(configuration.region)
+            return adaptor.generateDataForRegion(resource.guid, configuration.region)
         }
-        return polygonMap.get(resource.country)
+        adaptor.generateData(resource.guid, configuration.country)
     }
 
     /**
