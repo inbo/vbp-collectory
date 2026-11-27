@@ -92,7 +92,7 @@ class GbifSyncService {
     String scopeLabel(Map scope) {
         switch (scope.type) {
             case 'none': return 'none (no area filter)'
-            case 'polygon': return 'polygon (WKT)'
+            case 'polygon': return 'polygon filter (WKT)'
             default: return "${scope.type} ${scope.value}"
         }
     }

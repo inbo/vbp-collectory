@@ -52,7 +52,7 @@
             </div>
             <div class="mb-3 d-none">
                 <label for="geometry">Polygon WKT (editable)<cl:helpText code="manage.extload.label09.help"/></label>
-                <g:textArea name="geometry" cols="50" rows="5" value="${configuration.geometry}" onLoad="loadPolygon()" disabled="true"/>
+                <g:textArea name="geometry" cols="50" rows="5" value="${configuration.geometry}" onLoad="loadPolygon()"/>
             </div>
             <div class="mb-3">
                 <label for="publishingCountry"><g:message code="manage.repatriationCountry.label09" /><cl:helpText code="manage.repatriationCountry.label09.help"/></label>
@@ -152,8 +152,8 @@
       $geometryDiv.addClass("d-none");
     }else if(spatialCriteria === 'WKT polygon'){
       $geometryDiv.removeClass("d-none");
-      loadPolygon();
     }
+    loadPolygon();
   }
 
   function publishingCountryUpdated() {
